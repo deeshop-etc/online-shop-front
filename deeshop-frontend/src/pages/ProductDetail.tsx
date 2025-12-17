@@ -13,6 +13,10 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import LocalFireDepartmentRoundedIcon from '@mui/icons-material/LocalFireDepartmentRounded'
 import FacebookRoundedIcon from '@mui/icons-material/FacebookRounded'
 
+// --- Import Authentication ---
+import { useAuth } from '../context/AuthContext'
+import AuthDialog from '../components/AuthDialog'
+
 // --- Custom Discord Icon ---
 function DiscordIcon(props: any) {
     return (
@@ -29,7 +33,6 @@ interface PackageData {
     fullPrice: number;
     discount?: number;
     price?: number | null;
-    // cost: number; // ❌ ลบ Cost ออกจาก Mock Data ตามโจทย์
     featured: boolean;
 }
 
@@ -49,16 +52,14 @@ const GAME_METADATA: Record<string, { type: 'Game' | 'CashCard' }> = {
     'Default': { type: 'Game' }
 }
 
-// 🔥 เพิ่ม: ตัวแปรเก็บ % ส่วนลดต้นทุนจาก Supplier (แยกออกมาต่างหาก)
-// ความหมาย: เราซื้อของมาได้ถูกกว่าราคาป้ายกี่ % (Margin ของเรา)
 const GAME_SUPPLIER_DISCOUNTS: Record<string, number> = {
-    'Valorant': 5,      // เราได้ส่วนลด 20% จากราคาเต็ม
-    'RoV': 5.25,           // เราได้ส่วนลด 15%
-    'Steam Wallet': 5,  // เราได้ส่วนลด 10%
-    'Default': 5        // ค่าเริ่มต้น
+    'Valorant': 5,
+    'RoV': 5.25,
+    'Steam Wallet': 5,
+    'Default': 5,
+    'Free Fire': 5.25,
 }
 
-// Mock Data (เหลือแค่ราคาขายหน้าเว็บ)
 const GAME_PACKAGES: Record<string, PackageData[]> = {
     'Valorant': [
         { id: 1, value: 475, unit: 'VP', fullPrice: 130, price: 0, discount: 5, featured: false },
@@ -88,7 +89,19 @@ const GAME_PACKAGES: Record<string, PackageData[]> = {
         { id: 1, value: 1, unit: 'Starter Pack', fullPrice: 100, discount: 0, featured: false },
         { id: 2, value: 1, unit: 'Pro Pack', fullPrice: 550, discount: 10, featured: true },
         { id: 3, value: 1, unit: 'Ultra Pack', fullPrice: 1200, price: 999, featured: false },
-    ]
+    ],
+    'Free Fire': [
+        { id: 1, value: 33, unit: 'Diamond', fullPrice: 10, price: 9.5, featured: false },
+        { id: 2, value: 68, unit: 'Diamond', fullPrice: 20, price: 19, featured: false },
+        { id: 3, value: 172, unit: 'Diamond', fullPrice: 50, discount: 5.25, featured: false },
+        { id: 4, value: 310, unit: 'Diamond', fullPrice: 90, discount: 5.25, featured: false },
+        { id: 5, value: 517, unit: 'Diamond', fullPrice: 150, price: 142, featured: false },
+        { id: 6, value: 690, unit: 'Diamond', fullPrice: 200, discount: 5.25, featured: false },
+        { id: 7, value: 1052, unit: 'Diamond', fullPrice: 300, discount: 5.25, featured: true },
+        { id: 8, value: 1801, unit: 'Diamond', fullPrice: 500, discount: 5.25, featured: false },
+        { id: 9, value: 3698, unit: 'Diamond', fullPrice: 1000, discount: 5.25, featured: false },
+    ],
+
 }
 
 const formatPrice = (price: number) => {
@@ -102,6 +115,11 @@ const formatPrice = (price: number) => {
 const ProductDetail = () => {
     const { gameId } = useParams()
     const navigate = useNavigate()
+    
+    // --- Auth Logic ---
+    const { isAuthenticated } = useAuth()
+    const [authDialogOpen, setAuthDialogOpen] = useState(false)
+    const [pendingTransaction, setPendingTransaction] = useState<any>(null)
 
     const packages = GAME_PACKAGES[gameId || ''] || GAME_PACKAGES['Default']
     const metadata = GAME_METADATA[gameId || ''] || GAME_METADATA['Default']
@@ -114,6 +132,7 @@ const ProductDetail = () => {
     }
 
     const handleBuyClick = (pkg: PackageData, finalPrice: number, trueCost: number, discountReason: string) => {
+        // Validation ก่อน
         if (isGame) {
             const isValorant = gameId === 'Valorant'
             if (isValorant) {
@@ -129,18 +148,36 @@ const ProductDetail = () => {
             }
         }
 
-        // ส่งข้อมูลไปยังหน้า Payment (รวมถึงต้นทุนที่คำนวณได้)
-        navigate(`/checkout/${gameId}/${pkg.id}`, { 
-            state: { 
+        // เตรียมข้อมูล Transaction
+        const transactionData = {
+            path: `/checkout/${gameId}/${pkg.id}`,
+            state: {
                 playerInfo: isGame ? playerInfo : null,
                 pkgName: `${pkg.value.toLocaleString()} ${pkg.unit}`,
                 finalPrice,
                 fullPrice: pkg.fullPrice,
-                cost: trueCost, // 🔥 ส่งค่าต้นทุนที่คำนวณแล้ว
+                cost: trueCost,
                 discountReason,
-                isGame 
-            } 
-        })
+                isGame
+            }
+        }
+
+        // --- Logic ใหม่: ตรวจสอบ Login ---
+        if (!isAuthenticated) {
+            // ยังไม่ Login -> เก็บข้อมูลไว้ แล้วเปิด Dialog
+            setPendingTransaction(transactionData)
+            setAuthDialogOpen(true)
+        } else {
+            // Login แล้ว -> ไปหน้าจ่ายเงินได้เลย
+            navigate(transactionData.path, { state: transactionData.state })
+        }
+    }
+
+    // Callback เมื่อ Login/Register สำเร็จ
+    const handleLoginSuccess = () => {
+        if (pendingTransaction) {
+            navigate(pendingTransaction.path, { state: pendingTransaction.state })
+        }
     }
 
     const renderPlayerInput = () => {
@@ -148,7 +185,7 @@ const ProductDetail = () => {
         if (isValorant) {
             return (
                 <Grid container spacing={2}>
-                    <Grid size={{ xs: 6 }}> 
+                    <Grid size={{ xs: 6 }}>
                         <TextField
                             fullWidth label="Riot ID" name="riotId" placeholder="ชื่อในเกม"
                             value={playerInfo.riotId} onChange={handleInputChange}
@@ -182,13 +219,12 @@ const ProductDetail = () => {
         }
     }
 
-    // ดึง % ส่วนลดต้นทุนของเกมนี้
     const supplierDiscountPercent = GAME_SUPPLIER_DISCOUNTS[gameId || ''] || GAME_SUPPLIER_DISCOUNTS['Default']
 
     return (
         <Box sx={{ background: 'radial-gradient(circle at 50% 0%, #ffffff 0%, #f3f4f6 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: '"Kanit", sans-serif' }}>
             <Container maxWidth="lg" sx={{ py: { xs: 3, md: 6 }, flex: 1 }}>
-                
+
                 <Box mb={{ xs: 3, md: 6 }} sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
                     <Stack spacing={1}>
                         <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
@@ -224,27 +260,24 @@ const ProductDetail = () => {
 
                 <Grid container spacing={{ xs: 1, sm: 2, md: 3 }} alignItems="stretch">
                     {packages.map((pkg) => {
-                        // 1. คำนวณราคาขาย (Final Price)
                         let finalPrice = 0
                         let discountPercent = 0
-                        let discountReason = '-' 
+                        let discountReason = '-'
 
                         if (pkg.price != null && pkg.price > 1) {
                             finalPrice = pkg.price
-                            discountReason = 'ราคาพิเศษ' 
+                            discountReason = 'ราคาพิเศษ'
                             if (pkg.fullPrice > 0) {
                                 discountPercent = ((pkg.fullPrice - finalPrice) / pkg.fullPrice) * 100
                             }
                         } else if (pkg.discount != null && pkg.discount > 0) {
                             discountPercent = pkg.discount
                             finalPrice = pkg.fullPrice - (pkg.fullPrice * (discountPercent / 100))
-                            discountReason = `ส่วนลด ${discountPercent}%` 
+                            discountReason = `ส่วนลด ${discountPercent}%`
                         } else {
                             finalPrice = pkg.fullPrice
                         }
 
-                        // 2. 🔥 คำนวณต้นทุน (True Cost) ตามโจทย์
-                        // สูตร: TrueCost = FullPrice - (FullPrice * SupplierDiscount%)
                         const supplierDiscountAmount = (pkg.fullPrice * supplierDiscountPercent) / 100
                         const trueCost = pkg.fullPrice - supplierDiscountAmount
 
@@ -280,6 +313,14 @@ const ProductDetail = () => {
                     })}
                 </Grid>
             </Container>
+
+            {/* --- Dialog Login --- */}
+            <AuthDialog 
+                open={authDialogOpen} 
+                onClose={() => setAuthDialogOpen(false)} 
+                onSuccess={handleLoginSuccess}
+            />
+
             <Box sx={{ bgcolor: 'white', borderTop: '1px solid #E5E7EB', py: 4, mt: 'auto' }}>
                 <Container maxWidth="lg">
                     <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems="center" justifyContent="space-between">

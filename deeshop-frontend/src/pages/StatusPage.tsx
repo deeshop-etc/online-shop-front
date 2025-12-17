@@ -7,7 +7,7 @@ import {
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded'
 import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded'
 import HourglassTopRoundedIcon from '@mui/icons-material/HourglassTopRounded'
-import CancelRoundedIcon from '@mui/icons-material/CancelRounded' // ไอคอนกากบาท
+import CancelRoundedIcon from '@mui/icons-material/CancelRounded'
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded'
 import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded'
 
@@ -30,7 +30,7 @@ const StatusPage = () => {
                 if (currentOrder.status === 'PENDING') setActiveStep(0)
                 else if (currentOrder.status === 'PROCESSING') setActiveStep(1)
                 else if (currentOrder.status === 'COMPLETED') setActiveStep(3)
-                else if (currentOrder.status === 'REJECTED') setActiveStep(-1) // สถานะพิเศษ
+                else if (currentOrder.status === 'REJECTED') setActiveStep(-1)
             }
         }
 
@@ -40,10 +40,13 @@ const StatusPage = () => {
     }, [orderId])
 
     const getIcon = () => {
-        if (status === 'COMPLETED') return <CheckCircleRoundedIcon sx={{ fontSize: 80, color: '#10B981' }} />
-        if (status === 'PROCESSING') return <LocalShippingRoundedIcon sx={{ fontSize: 80, color: '#3B82F6' }} />
-        if (status === 'REJECTED') return <CancelRoundedIcon sx={{ fontSize: 80, color: '#EF4444' }} /> // สีแดง
-        return <HourglassTopRoundedIcon sx={{ fontSize: 80, color: '#F59E0B' }} />
+        // Responsive Icon Size
+        const iconStyle = { fontSize: { xs: 60, md: 80 } }
+        
+        if (status === 'COMPLETED') return <CheckCircleRoundedIcon sx={{ ...iconStyle, color: '#10B981' }} />
+        if (status === 'PROCESSING') return <LocalShippingRoundedIcon sx={{ ...iconStyle, color: '#3B82F6' }} />
+        if (status === 'REJECTED') return <CancelRoundedIcon sx={{ ...iconStyle, color: '#EF4444' }} />
+        return <HourglassTopRoundedIcon sx={{ ...iconStyle, color: '#F59E0B' }} />
     }
 
     const getTitle = () => {
@@ -54,38 +57,78 @@ const StatusPage = () => {
     }
 
     return (
-        <Box sx={{ background: 'radial-gradient(circle at 50% 0%, #ffffff 0%, #f3f4f6 100%)', minHeight: '100vh', py: 8, fontFamily: '"Kanit", sans-serif' }}>
+        <Box 
+            sx={{ 
+                background: 'radial-gradient(circle at 50% 0%, #ffffff 0%, #f3f4f6 100%)', 
+                minHeight: '100vh', 
+                display: 'flex',             // 🔥 Flexbox เพื่อจัดกลาง
+                justifyContent: 'center',    // 🔥 จัดกลางแนวนอน
+                alignItems: 'center',        // 🔥 จัดกลางแนวตั้ง
+                py: 4, 
+                px: 2,                       // 🔥 กันชิดขอบจอเกินไปในมือถือ
+                fontFamily: '"Kanit", sans-serif' 
+            }}
+        >
             <Container maxWidth="sm">
-                <Card elevation={0} sx={{ borderRadius: '24px', border: '1px solid #E5E7EB', textAlign: 'center', p: 4 }}>
+                <Card 
+                    elevation={0} 
+                    sx={{ 
+                        borderRadius: { xs: '16px', md: '24px' }, // 🔥 ปรับความโค้งตามขนาดจอ
+                        border: '1px solid #E5E7EB', 
+                        textAlign: 'center', 
+                        p: { xs: 3, sm: 5 }, // 🔥 Responsive Padding
+                        width: '100%' 
+                    }}
+                >
                     
                     {/* Animated Icon */}
-                    <Box sx={{ mb: 3, animation: (status === 'PENDING' || status === 'PROCESSING') ? 'pulse 2s infinite' : 'none' }}>
+                    <Box sx={{ mb: { xs: 2, md: 3 }, animation: (status === 'PENDING' || status === 'PROCESSING') ? 'pulse 2s infinite' : 'none' }}>
                         {getIcon()}
                     </Box>
 
-                    <Typography variant="h4" fontWeight={800} gutterBottom sx={{ color: status === 'REJECTED' ? '#EF4444' : '#111827' }}>
+                    <Typography 
+                        variant="h4" 
+                        fontWeight={800} 
+                        gutterBottom 
+                        sx={{ 
+                            color: status === 'REJECTED' ? '#EF4444' : '#111827',
+                            fontSize: { xs: '1.5rem', sm: '2.125rem' } // 🔥 Responsive Font Size
+                        }}
+                    >
                         {getTitle()}
                     </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 5 }}>
+                    
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: { xs: 3, md: 5 } }}>
                         Order ID: #{orderId}
                     </Typography>
 
                     {/* Stepper (ซ่อนเมื่อถูก Reject) */}
                     {status !== 'REJECTED' && (
-                        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 6 }}>
-                            {STEPS.map((label) => (
-                                <Step key={label}><StepLabel>{label}</StepLabel></Step>
-                            ))}
-                        </Stepper>
+                        <Box sx={{ width: '100%', mb: { xs: 4, md: 6 } }}>
+                            <Stepper activeStep={activeStep} alternativeLabel>
+                                {STEPS.map((label) => (
+                                    <Step key={label}>
+                                        <StepLabel sx={{ '& .MuiStepLabel-label': { fontSize: { xs: '0.75rem', sm: '0.875rem' } } }}>{label}</StepLabel>
+                                    </Step>
+                                ))}
+                            </Stepper>
+                        </Box>
                     )}
 
                     {/* Content ตามสถานะ */}
                     {status === 'COMPLETED' && (
                         <Box>
-                            <Typography variant="body1" sx={{ mb: 3, color: '#059669', bgcolor: '#ECFDF5', p: 2, borderRadius: 2 }}>
+                            <Typography variant="body1" sx={{ mb: 3, color: '#059669', bgcolor: '#ECFDF5', p: 2, borderRadius: 2, fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                                 สินค้าถูกเติมเข้าบัญชีของคุณเรียบร้อยแล้ว
                             </Typography>
-                            <Button variant="contained" size="large" startIcon={<HomeRoundedIcon />} onClick={() => navigate('/')} sx={{ borderRadius: '50px', bgcolor: '#111827' }}>
+                            <Button 
+                                variant="contained" 
+                                size="large" 
+                                startIcon={<HomeRoundedIcon />} 
+                                onClick={() => navigate('/')} 
+                                fullWidth // 🔥 เต็มจอในมือถือ
+                                sx={{ borderRadius: '50px', bgcolor: '#111827', py: 1.5 }}
+                            >
                                 กลับหน้าหลัก
                             </Button>
                         </Box>
@@ -93,15 +136,29 @@ const StatusPage = () => {
 
                     {status === 'REJECTED' && (
                         <Box>
-                            <Typography variant="body1" sx={{ mb: 3, color: '#B91C1C', bgcolor: '#FEE2E2', p: 2, borderRadius: 2 }}>
+                            <Typography variant="body1" sx={{ mb: 3, color: '#B91C1C', bgcolor: '#FEE2E2', p: 2, borderRadius: 2, fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                                 ขออภัย รายการนี้ไม่ผ่านการอนุมัติ <br/>
                                 (อาจเกิดจากยอดเงินไม่ถูกต้อง หรือสลิปซ้ำ)
                             </Typography>
-                            <Stack direction="row" spacing={2} justifyContent="center">
-                                <Button variant="outlined" size="large" startIcon={<SupportAgentRoundedIcon />} sx={{ borderRadius: '50px' }}>
+                            
+                            {/* 🔥 Responsive Stack: จอเล็กเรียงตั้ง จอใหญ่เรียงนอน */}
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
+                                <Button 
+                                    variant="outlined" 
+                                    size="large" 
+                                    startIcon={<SupportAgentRoundedIcon />} 
+                                    sx={{ borderRadius: '50px', py: 1.5 }}
+                                    fullWidth
+                                >
                                     ติดต่อแอดมิน
                                 </Button>
-                                <Button variant="contained" size="large" onClick={() => navigate('/')} sx={{ borderRadius: '50px', bgcolor: '#111827' }}>
+                                <Button 
+                                    variant="contained" 
+                                    size="large" 
+                                    onClick={() => navigate('/')} 
+                                    sx={{ borderRadius: '50px', bgcolor: '#111827', py: 1.5 }}
+                                    fullWidth
+                                >
                                     ทำรายการใหม่
                                 </Button>
                             </Stack>
@@ -112,7 +169,9 @@ const StatusPage = () => {
                         <Box sx={{ bgcolor: '#F9FAFB', p: 3, borderRadius: 4 }}>
                             <Stack direction="row" alignItems="center" justifyContent="center" spacing={2}>
                                 <CircularProgress size={20} thickness={5} />
-                                <Typography variant="body2" color="text.secondary">ระบบกำลังทำงาน กรุณาอย่าปิดหน้านี้</Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '1rem' } }}>
+                                    ระบบกำลังทำงาน กรุณาอย่าปิดหน้านี้
+                                </Typography>
                             </Stack>
                         </Box>
                     )}

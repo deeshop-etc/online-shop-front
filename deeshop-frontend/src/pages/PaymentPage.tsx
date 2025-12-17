@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import {
     Container, Typography, Box, Grid, Card, CardContent,
@@ -14,9 +14,12 @@ import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import SaveAltRoundedIcon from '@mui/icons-material/SaveAltRounded'
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded'
-import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded' // ไอคอน Copy
-import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded' // ไอคอนธนาคาร
+import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded'
+import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded'
 import type { TransitionProps } from '@mui/material/transitions'
+
+// --- Import Context ---
+import { useAuth } from '../context/AuthContext'
 
 const Transition = React.forwardRef(function Transition(
     props: TransitionProps & { children: React.ReactElement<any, any> },
@@ -40,6 +43,17 @@ const PaymentPage = () => {
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
+    // --- Auth Guard ---
+    const { isAuthenticated } = useAuth()
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            // ถ้ายังไม่ Login ให้เด้งกลับหน้าแรก (ป้องกันเข้าผ่าน URL ตรงๆ)
+            navigate('/') 
+        }
+    }, [isAuthenticated, navigate])
+    // ------------------
+
     // สำหรับ Check Slip
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [isCheckingSlip, setIsCheckingSlip] = useState(false)
@@ -50,7 +64,7 @@ const PaymentPage = () => {
     const bankInfo = {
         accNo: '1788721818',
         accName: 'ตันติกร พุ่มเหรียญ',
-        bankName: 'ธนาคารกสิกรไทย (KBank)' // เดาจากเลข 178 มักเป็น KBank แต่ถ้าไม่ใช่แก้ตรงนี้ได้ครับ
+        bankName: 'ธนาคารกสิกรไทย (KBank)'
     }
 
     const {
@@ -310,7 +324,7 @@ const PaymentPage = () => {
                                     onClick={handlePaymentAction}
                                     disabled={isCheckingSlip}
                                     sx={{
-                                        mt: paymentMethod === 'checkslip' ? 2 : 4, // ลดระยะห่างลงเล็กน้อยถ้ามีกล่องเลขบัญชี
+                                        mt: paymentMethod === 'checkslip' ? 2 : 4,
                                         bgcolor: paymentMethod === 'checkslip' ? '#059669' : '#111827',
                                         color: 'white',
                                         borderRadius: '16px',
